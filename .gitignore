@@ -1,0 +1,21 @@
+# ============================================================
+#  Trava de seguranca: nada que contenha cofre vai para o
+#  repositorio, nem por acidente. Este repositorio e PUBLICO.
+# ============================================================
+
+# backups exportados pelo app (cifrados, mas nao publique)
+*.enc
+*backup*
+cofre*.json
+
+# listas de senhas que possam parar aqui por engano
+*.csv
+*.kdbx
+*.tsv
+
+# lixo do sistema
+Thumbs.db
+desktop.ini
+.DS_Store
+*.tmp
+~$*

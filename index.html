@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<title>Cofre</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ============ TELA: CRIAR COFRE ============ -->
+<section id="screen-setup" class="screen center hidden">
+  <div class="card gate">
+    <div class="brand"><span class="logo">&#128273;</span><h1>Criar seu cofre</h1></div>
+    <p class="muted">
+      Escolha uma senha-mestra. Ela abre tudo e <strong>nao pode ser recuperada</strong>
+      &mdash; nao fica guardada em nenhum lugar, nem no seu Drive.
+    </p>
+    <label class="field">
+      <span>Senha-mestra</span>
+      <input type="password" id="setup-pw" autocomplete="new-password" spellcheck="false">
+    </label>
+    <div class="strength"><div class="strength-bar"><i id="setup-bar"></i></div><span id="setup-bits" class="muted small"></span></div>
+    <label class="field">
+      <span>Repita a senha-mestra</span>
+      <input type="password" id="setup-pw2" autocomplete="new-password" spellcheck="false">
+    </label>
+    <button class="btn ghost small" id="setup-suggest">Sugerir frase-senha forte</button>
+    <p id="setup-suggestion" class="suggestion hidden"></p>
+    <p id="setup-error" class="error hidden"></p>
+    <button class="btn primary block" id="setup-go">Criar cofre</button>
+    <p class="muted small">
+      Dica: anote a senha-mestra em papel e guarde num lugar seguro. E a unica copia.
+    </p>
+    <button class="btn link small" id="setup-restore">Ja tenho um cofre (restaurar backup)</button>
+  </div>
+</section>
+
+<!-- ============ TELA: DESBLOQUEIO ============ -->
+<section id="screen-lock" class="screen center hidden">
+  <div class="card gate">
+    <div class="brand"><span class="logo">&#128274;</span><h1>Cofre bloqueado</h1></div>
+    <form id="unlock-form">
+      <label class="field">
+        <span>Senha-mestra</span>
+        <input type="password" id="unlock-pw" autocomplete="current-password" spellcheck="false" autofocus>
+      </label>
+      <p id="unlock-error" class="error hidden"></p>
+      <button class="btn primary block" id="unlock-go" type="submit">Desbloquear</button>
+    </form>
+    <div id="unlock-busy" class="busy hidden"><span class="spinner"></span> derivando a chave&hellip;</div>
+    <button class="btn link small" id="unlock-reset">Apagar cofre deste dispositivo</button>
+  </div>
+</section>
+
+<!-- ============ TELA: COFRE ============ -->
+<section id="screen-vault" class="screen hidden">
+  <header class="topbar">
+    <div class="topbar-row">
+      <span class="logo small">&#128273;</span>
+      <input type="search" id="search" placeholder="Buscar por titulo, usuario, site&hellip;" autocomplete="off">
+      <button class="icon-btn" id="btn-sync" title="Sincronizar com o Google Drive">&#8635;</button>
+      <button class="icon-btn" id="btn-settings" title="Configuracoes">&#9881;</button>
+      <button class="icon-btn" id="btn-lock" title="Bloquear agora">&#128274;</button>
+    </div>
+    <div class="topbar-row meta">
+      <span id="stat-total" class="chip"></span>
+      <span id="stat-weak" class="chip warn hidden"></span>
+      <span id="stat-reused" class="chip warn hidden"></span>
+      <span id="sync-state" class="chip sync"></span>
+    </div>
+  </header>
+
+  <main id="list" class="list"></main>
+
+  <div id="empty" class="empty hidden">
+    <p class="big">&#128451;</p>
+    <h2>Seu cofre esta vazio</h2>
+    <p class="muted">Adicione a primeira senha, ou importe de uma vez a lista que voce ja tem.</p>
+    <div class="row gap">
+      <button class="btn primary" id="empty-new">Adicionar senha</button>
+      <button class="btn ghost" id="empty-import">Importar lista</button>
+    </div>
+  </div>
+
+  <button class="fab" id="btn-new" title="Nova entrada">+</button>
+</section>
+
+<!-- ============ MODAL: ENTRADA ============ -->
+<div class="modal hidden" id="modal-entry">
+  <div class="sheet">
+    <div class="sheet-head">
+      <h2 id="entry-title">Nova entrada</h2>
+      <button class="icon-btn" data-close>&times;</button>
+    </div>
+    <div class="sheet-body">
+      <input type="hidden" id="e-id">
+      <label class="field"><span>Titulo</span>
+        <input id="e-title" placeholder="Ex.: Banco Inter" autocomplete="off"></label>
+      <label class="field"><span>Usuario / e-mail</span>
+        <input id="e-username" autocomplete="off" spellcheck="false"></label>
+      <label class="field"><span>Senha</span>
+        <div class="input-row">
+          <input id="e-password" type="password" autocomplete="new-password" spellcheck="false">
+          <button class="icon-btn" id="e-reveal" title="Mostrar/ocultar">&#128065;</button>
+          <button class="icon-btn" id="e-copy" title="Copiar">&#128203;</button>
+          <button class="icon-btn" id="e-gen" title="Gerar senha">&#127922;</button>
+        </div>
+      </label>
+      <div class="strength"><div class="strength-bar"><i id="e-bar"></i></div><span id="e-bits" class="muted small"></span></div>
+      <label class="field"><span>Site (URL)</span>
+        <input id="e-url" placeholder="https://" autocomplete="off" spellcheck="false"></label>
+      <label class="field"><span>Etiquetas (separadas por virgula)</span>
+        <input id="e-tags" placeholder="banco, trabalho" autocomplete="off"></label>
+      <label class="field"><span>Notas</span>
+        <textarea id="e-notes" rows="3"></textarea></label>
+      <p id="entry-error" class="error hidden"></p>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn danger ghost hidden" id="e-delete">Excluir</button>
+      <span class="grow"></span>
+      <button class="btn ghost" data-close>Cancelar</button>
+      <button class="btn primary" id="e-save">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: GERADOR ============ -->
+<div class="modal hidden" id="modal-gen">
+  <div class="sheet narrow">
+    <div class="sheet-head"><h2>Gerador de senhas</h2><button class="icon-btn" data-close>&times;</button></div>
+    <div class="sheet-body">
+      <output id="gen-out" class="gen-out"></output>
+      <label class="field row-field">
+        <span>Tamanho: <b id="gen-len-label">20</b></span>
+        <input type="range" id="gen-len" min="8" max="64" value="20">
+      </label>
+      <div class="checks">
+        <label><input type="checkbox" id="gen-upper" checked> Maiusculas</label>
+        <label><input type="checkbox" id="gen-lower" checked> Minusculas</label>
+        <label><input type="checkbox" id="gen-digits" checked> Numeros</label>
+        <label><input type="checkbox" id="gen-symbols" checked> Simbolos</label>
+        <label><input type="checkbox" id="gen-amb" checked> Evitar caracteres ambiguos</label>
+      </div>
+      <div class="row gap">
+        <button class="btn ghost small" id="gen-again">Gerar outra</button>
+        <button class="btn ghost small" id="gen-phrase">Frase-senha</button>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <span class="grow"></span>
+      <button class="btn ghost" data-close>Fechar</button>
+      <button class="btn primary" id="gen-use">Usar esta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: IMPORTAR ============ -->
+<div class="modal hidden" id="modal-import">
+  <div class="sheet">
+    <div class="sheet-head"><h2>Importar senhas</h2><button class="icon-btn" data-close>&times;</button></div>
+    <div class="sheet-body">
+      <div id="imp-input">
+      <p class="muted small">
+        Cole o texto de uma nota do <b>Google Keep</b>, do jeito que ele estiver, ou escolha
+        arquivos: CSV do Chrome / Bitwarden / KeePass, ou os <code>.json</code> e
+        <code>.html</code> do Google Takeout. Tudo e lido aqui no seu navegador &mdash;
+        nada sai do aparelho.
+      </p>
+      <div class="row gap wrap">
+        <label class="btn ghost small">
+          Escolher arquivos
+          <input type="file" id="imp-file" accept=".csv,.txt,.json,.html,.htm" multiple hidden>
+        </label>
+        <span id="imp-filename" class="muted small"></span>
+      </div>
+      <label class="field"><span>&hellip; ou cole o texto da nota aqui</span>
+        <textarea id="imp-text" rows="8" spellcheck="false"
+          placeholder="Banco Inter&#10;login: 12345678&#10;senha: Abc@123&#10;&#10;Netflix - pedro@email.com - MinhaSenha"></textarea>
+      </label>
+      </div>
+      <p id="imp-hint" class="muted small hidden">
+        Confira antes de importar: corrija o que estiver trocado e desmarque o que nao quiser.
+      </p>
+      <div id="imp-preview" class="preview hidden"></div>
+      <p id="imp-error" class="error hidden"></p>
+    </div>
+    <div class="sheet-foot">
+      <button class="btn ghost small hidden" id="imp-back">Voltar</button>
+      <span class="grow"></span>
+      <button class="btn ghost" data-close>Cancelar</button>
+      <button class="btn primary" id="imp-go">Analisar</button>
+      <button class="btn primary hidden" id="imp-confirm">Importar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: CONFIGURACOES ============ -->
+<div class="modal hidden" id="modal-settings">
+  <div class="sheet">
+    <div class="sheet-head"><h2>Configuracoes</h2><button class="icon-btn" data-close>&times;</button></div>
+    <div class="sheet-body">
+
+      <h3>Google Drive</h3>
+      <p class="muted small">
+        Cole o <b>ID do cliente OAuth</b> do seu projeto no Google Cloud. O app sobe apenas
+        o arquivo <code>cofre.enc</code> (cifrado) e usa o escopo <code>drive.file</code>,
+        que da acesso somente aos arquivos que ele mesmo cria.
+      </p>
+      <label class="field"><span>ID do cliente OAuth</span>
+        <input id="cfg-clientid" placeholder="000000000000-xxxxx.apps.googleusercontent.com"
+               autocomplete="off" spellcheck="false"></label>
+      <div class="row gap wrap">
+        <button class="btn ghost small" id="cfg-connect">Conectar ao Drive</button>
+        <button class="btn ghost small" id="cfg-disconnect">Desconectar</button>
+        <span id="cfg-drive-state" class="muted small"></span>
+      </div>
+      <p class="muted small" id="cfg-origin-hint"></p>
+
+      <h3>Seguranca</h3>
+      <label class="field row-field"><span>Bloquear sozinho apos (minutos)</span>
+        <input type="number" id="cfg-autolock" min="1" max="120" style="max-width:90px"></label>
+      <label class="field row-field"><span>Limpar area de transferencia apos (segundos)</span>
+        <input type="number" id="cfg-clip" min="0" max="300" style="max-width:90px"></label>
+      <button class="btn ghost small" id="cfg-changepw">Trocar senha-mestra</button>
+
+      <h3>Backup</h3>
+      <p class="muted small">
+        O backup sai <b>cifrado</b> com a sua senha-mestra atual. Guarde-o fora do Drive tambem
+        (pendrive, por exemplo) &mdash; e o seu seguro contra perda da conta Google.
+      </p>
+      <div class="row gap wrap">
+        <button class="btn ghost small" id="cfg-export">Exportar cofre cifrado</button>
+        <label class="btn ghost small">Restaurar backup<input type="file" id="cfg-import" accept=".enc,.json" hidden></label>
+        <button class="btn ghost small" id="cfg-import-csv">Importar CSV</button>
+      </div>
+
+      <h3 class="danger-h">Zona de risco</h3>
+      <button class="btn danger ghost small" id="cfg-wipe">Apagar cofre deste dispositivo</button>
+      <p class="muted small">Nao apaga a copia do Drive nem seus backups.</p>
+
+      <p class="muted small" id="cfg-version"></p>
+    </div>
+    <div class="sheet-foot">
+      <span class="grow"></span>
+      <button class="btn primary" id="cfg-save">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: TROCAR SENHA-MESTRA ============ -->
+<div class="modal hidden" id="modal-changepw">
+  <div class="sheet narrow">
+    <div class="sheet-head"><h2>Trocar senha-mestra</h2><button class="icon-btn" data-close>&times;</button></div>
+    <div class="sheet-body">
+      <label class="field"><span>Senha-mestra atual</span>
+        <input type="password" id="cp-old" autocomplete="current-password"></label>
+      <label class="field"><span>Nova senha-mestra</span>
+        <input type="password" id="cp-new" autocomplete="new-password"></label>
+      <label class="field"><span>Repita a nova</span>
+        <input type="password" id="cp-new2" autocomplete="new-password"></label>
+      <p class="muted small">Depois de trocar, sincronize para atualizar a copia do Drive.</p>
+      <p id="cp-error" class="error hidden"></p>
+    </div>
+    <div class="sheet-foot">
+      <span class="grow"></span>
+      <button class="btn ghost" data-close>Cancelar</button>
+      <button class="btn primary" id="cp-go">Trocar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: RESTAURAR COFRE EXISTENTE ============ -->
+<div class="modal hidden" id="modal-restore">
+  <div class="sheet narrow">
+    <div class="sheet-head"><h2>Restaurar cofre existente</h2><button class="icon-btn" data-close>&times;</button></div>
+    <div class="sheet-body">
+      <h3>De um arquivo de backup</h3>
+      <label class="btn ghost small">Escolher arquivo .enc<input type="file" id="rs-file" accept=".enc,.json" hidden></label>
+
+      <h3>Do Google Drive</h3>
+      <p class="muted small">Baixa o <code>cofre.enc</code> que o app ja criou na sua conta.</p>
+      <label class="field"><span>ID do cliente OAuth</span>
+        <input id="rs-clientid" placeholder="000000000000-xxxxx.apps.googleusercontent.com"
+               autocomplete="off" spellcheck="false"></label>
+      <button class="btn ghost small" id="rs-drive">Conectar e baixar</button>
+    </div>
+    <div class="sheet-foot">
+      <span class="grow"></span>
+      <button class="btn ghost" data-close>Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL: SENHA PARA ABRIR COFRE DO DRIVE ============ -->
+<div class="modal hidden" id="modal-remote">
+  <div class="sheet narrow">
+    <div class="sheet-head"><h2>Cofre encontrado no Drive</h2><button class="icon-btn" data-close>&times;</button></div>
+    <div class="sheet-body">
+      <p class="muted small">Digite a senha-mestra desse cofre para trazer os dados para este dispositivo.</p>
+      <label class="field"><span>Senha-mestra</span>
+        <input type="password" id="rm-pw" autocomplete="current-password"></label>
+      <p id="rm-error" class="error hidden"></p>
+    </div>
+    <div class="sheet-foot">
+      <span class="grow"></span>
+      <button class="btn ghost" data-close>Cancelar</button>
+      <button class="btn primary" id="rm-go">Abrir</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts" class="toasts"></div>
+
+<script src="js/app.js" type="module"></script>
+</body>
+</html>
