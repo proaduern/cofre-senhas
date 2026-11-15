@@ -6,7 +6,7 @@
    o conteudo vive no IndexedDB, cifrado.
    ============================================================ */
 
-const CACHE = 'cofre-v1.1.0';
+const CACHE = 'cofre-v1.2.0';
 
 const SHELL = [
   './',

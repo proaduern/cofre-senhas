@@ -9,7 +9,7 @@ import * as D from './drive.js';
 import { parseList, hostOf } from './importer.js';
 import * as K from './keep.js';
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.2.0';
 
 let cfg = null;
 let lockTimer = null;
@@ -763,8 +763,17 @@ let syncTimer = null;
 
 function autoSyncSoon() {
   if (!cfg.driveClientId) return;
+  // sem rede nao adianta tentar: o evento 'online' cuida disso depois
+  if (!navigator.onLine) { updateSyncChip(); return; }
   if (syncTimer) clearTimeout(syncTimer);
   syncTimer = setTimeout(() => doSync(true), 2500);
+}
+
+/** A falha veio de falta de rede, e nao de um erro de verdade do Drive? */
+function ehFalhaDeRede(e) {
+  if (!navigator.onLine) return true;
+  const m = String((e && e.message) || e);
+  return /failed to fetch|networkerror|network request failed|net::/i.test(m);
 }
 
 function updateSyncChip() {
@@ -772,6 +781,11 @@ function updateSyncChip() {
   if (!cfg.driveClientId) {
     chip.textContent = 'Drive nao configurado';
     chip.className = 'chip sync off';
+    return;
+  }
+  if (!navigator.onLine) {
+    chip.textContent = V.isDirty() ? 'sem conexao - pendente' : 'sem conexao';
+    chip.className = 'chip sync pending';
     return;
   }
   if (V.isDirty()) {
@@ -789,6 +803,11 @@ async function doSync(silent) {
   if (!V.isUnlocked()) return;
   if (!cfg.driveClientId) {
     if (!silent) toast('Configure o ID do cliente OAuth nas Configuracoes.', 'err');
+    return;
+  }
+  if (!navigator.onLine) {
+    updateSyncChip();
+    if (!silent) toast('Sem internet. Sincronizo assim que a conexao voltar.');
     return;
   }
 
@@ -869,7 +888,12 @@ async function doSync(silent) {
     }
   } catch (e) {
     updateSyncChip();
-    toast(e.message, 'err');
+    if (ehFalhaDeRede(e)) {
+      // nao e erro do usuario: o cofre local ja esta salvo e cifrado
+      if (!silent) toast('Sem internet. As alteracoes ficam salvas e sobem quando a conexao voltar.');
+    } else {
+      toast(e.message, 'err');
+    }
   }
 }
 
@@ -1014,6 +1038,16 @@ function wireEvents() {
   ['click', 'keydown', 'touchstart', 'mousemove'].forEach((evt) => {
     document.addEventListener(evt, throttle(resetLockTimer, 20000), { passive: true });
   });
+
+  // a conexao voltou: sincroniza na hora, sem esperar reabrir o app
+  window.addEventListener('online', () => {
+    updateSyncChip();
+    if (V.isUnlocked() && cfg.driveClientId) {
+      toast('Conexao de volta. Sincronizando...');
+      doSync(true);
+    }
+  });
+  window.addEventListener('offline', updateSyncChip);
 
   // bloqueia ao voltar de segundo plano depois de muito tempo
   let hiddenAt = 0;

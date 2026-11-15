@@ -138,6 +138,16 @@ input[type="file"] { display: none; }
 .strength-bar i.l4 { width: 100%; background: var(--ok); }
 
 .error { color: var(--danger); font-size: 13px; margin: 8px 0 0; }
+
+/* separador "ou" entre criar e restaurar */
+.divider {
+  display: flex; align-items: center; gap: 10px;
+  margin: 20px 0 14px;
+  color: var(--muted); font-size: 12px;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--line);
+}
 .suggestion {
   font-family: ui-monospace, Consolas, monospace; background: var(--bg);
   border: 1px dashed var(--line); border-radius: var(--radius-sm);
