@@ -194,33 +194,32 @@ depois de cada alteração; o botão ↻ força na hora.
 
 ## 4. Publicar e instalar no Android
 
-O Android exige `https://` para criptografia e para instalar como app. A forma
-gratuita mais simples é o GitHub Pages:
+O Android exige `https://` para criptografia e para instalar como app.
+**Isto já está feito** — o app está publicado no GitHub Pages:
+
+### 🔗 https://proaduern.github.io/cofre-senhas/
+
+Repositório: <https://github.com/proaduern/cofre-senhas> (público).
+O código é público; o seu cofre não — ele vive cifrado no seu Drive e no seu
+aparelho, e nenhum dado sensível é versionado.
+
+Para publicar alterações feitas na pasta, basta:
 
 ```bash
-git init
-git add .
-git commit -m "Cofre de senhas"
+git add -A; git commit -m "descricao da mudanca"; git push
 ```
 
-Crie um repositório **privado** em <https://github.com/new>, e então:
+O Pages recompila sozinho em um ou dois minutos.
 
-```bash
-git remote add origin https://github.com/SEU-USUARIO/cofre.git
-git push -u origin main
-```
-
-No repositório: **Settings → Pages → Branch: main / root → Save**.
-Em um ou dois minutos a URL fica no ar:
-`https://SEU-USUARIO.github.io/cofre/`
-
-> Repositório privado só serve o Pages em contas Pro. Em conta gratuita, use
-> repositório público: **o código é público, o seu cofre não** — ele vive no
-> seu Drive e no seu aparelho, cifrado, e nada sensível está nos arquivos.
+> **Use a mesma URL nos dois aparelhos.** O armazenamento do navegador é
+> separado por endereço: o cofre que existe em `localhost:5173` não é o mesmo
+> que existe no endereço do Pages. Passando a usar a URL publicada no PC e no
+> celular, os dois ficam no mesmo lugar e o Drive mantém tudo em sincronia —
+> e o servidor local vira apenas um plano B para usar sem internet.
 
 Depois:
 
-1. Acrescente essa URL nas **Origens JavaScript autorizadas** (passo 3.5).
+1. A URL já está nas **Origens JavaScript autorizadas** do cliente OAuth.
 2. Abra a URL no Chrome do Android → menu ⋮ → **Instalar aplicativo**.
 3. No app recém-instalado: **Já tenho um cofre** → *Do Google Drive* → cole o
    mesmo ID do cliente → **Conectar e baixar** → digite a senha-mestra.
